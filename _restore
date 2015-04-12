@@ -1,0 +1,48 @@
+#!/bin/bash
+
+[ $1 ] || {
+	echo "Missing workdir"
+	exit 1
+}
+
+[ $2 ] || {
+	echo "Missing id"
+}
+
+workdir=$(readlink -m $1)
+scriptlocation=$(dirname "${BASH_SOURCE[0]}")
+dev=$($scriptlocation/_whichdev $workdir)
+mountPoint=/tmp/$RANDOM
+snapid=$2
+
+mkdir -p $mountPoint
+mount -t btrfs -o subvolid=0 $dev $mountPoint
+
+if [ "$?" == "0" ]; then
+
+	if [ -d $mountPoint/.snaps$workdir/snaps/$snapid ]; then
+		
+		# Snap current
+		./snap $workdir
+
+		# Umount before switching
+		umount $workdir
+
+		# Replace
+		btrfs sub del $mountPoint/.snaps$workdir/snaps/main
+		mv $mountPoint/.snaps$workdir/snaps/$snapid $mountPoint/.snaps$workdir/snaps/main
+
+		# Mount
+		mount -t btrfs -o subvol=.snaps/$workdir/snaps/main $dev $workdir
+
+	else
+		echo "Snap $snapid not found!"
+	fi
+
+	# Umount tmp fs
+	umount $mountPoint
+else 
+	echo "Unable to mount $dev on $mountPoint"
+fi
+
+rmdir $mountPoint

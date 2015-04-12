@@ -1,0 +1,10 @@
+#!/bin/bash
+
+path=$(readlink -m $1)
+
+while [ "$dev" == "" ]; do
+	dev=$(btrfs filesystem show $path |grep path | sed -r 's,.*(/dev/[a-z]+[0-9]?).*,\1,g')
+	path=$(dirname $path)
+done
+
+echo $dev

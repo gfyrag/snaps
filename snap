@@ -1,0 +1,17 @@
+#!/bin/bash
+
+[ "$1" ] ||{
+	echo "Missing command"
+	exit 1
+}
+
+scriptlocation=$(dirname "${BASH_SOURCE[0]}")
+cmd=$1
+shift
+
+if [ -f $scriptlocation/_$cmd ]; then 
+	$scriptlocation/_$cmd "$@"
+else 
+	echo "Command $cmd not found"
+	exit 2
+fi

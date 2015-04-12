@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -x
+
+[ $1 ] || {
+	echo "Missing workdir"
+	exit 1
+}
+
+workdir=$(readlink -m $1)
+scriptlocation=$(dirname "${BASH_SOURCE[0]}")
+dev=$($scriptlocation/_whichdev $workdir)
+mountPoint=/tmp/$RANDOM
+snapshot=$(date +%s)
+
+mkdir -p $mountPoint
+mount -t btrfs -o subvolid=0 $dev $mountPoint
+
+if [ "$?" == "0" ]; then
+	btrfs sub snapshot $mountPoint/.snaps/$workdir/snaps/main $mountPoint/.snaps/$workdir/snaps/$snapshot
+	sync
+
+	umount $mountPoint
+else 
+	echo "Unable to mount $mountPoint"
+fi
+rmdir $mountPoint
