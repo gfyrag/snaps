@@ -27,13 +27,22 @@ if [ "$?" == "0" ]; then
 
 		# Umount before switching
 		umount $workdir
+		if [ "$?" == "0" ]; then
 
-		# Replace
-		btrfs sub del $mountPoint/.snaps$workdir/snaps/main
-		mv $mountPoint/.snaps$workdir/snaps/$snapid $mountPoint/.snaps$workdir/snaps/main
+			# Replace
+			btrfs sub del $mountPoint/.snaps$workdir/snaps/main
 
-		# Mount
-		mount -t btrfs -o subvol=.snaps/$workdir/snaps/main $dev $workdir
+			if [ "$?" == "0" ]; then
+				mv $mountPoint/.snaps$workdir/snaps/$snapid $mountPoint/.snaps$workdir/snaps/main
+
+				# Mount
+				mount -t btrfs -o subvol=.snaps/$workdir/snaps/main $dev $workdir
+			else 
+				echo "Unable to remove main volume"
+			fi
+		else 
+			echo "Unable to umount workdir : $workdir"
+		fi
 
 	else
 		echo "Snap $snapid not found!"
