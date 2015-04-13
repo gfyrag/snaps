@@ -23,7 +23,7 @@ if [ "$?" == "0" ]; then
 	if [ -d $mountPoint/.snaps$workdir/snaps/$snapid ]; then
 		
 		# Snap current
-		./snap $workdir
+		$scriptlocation/_snap $workdir
 
 		# Umount before switching
 		umount $workdir
