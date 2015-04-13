@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 [ $1 ] || {
 	echo "Missing workdir"
 	exit 1
@@ -15,49 +17,33 @@
 
 workdir=$(readlink -m $1)
 scriptlocation=$(dirname "${BASH_SOURCE[0]}")
-dev=$($scriptlocation/_whichdev $workdir)
-mountPoint=/tmp/$RANDOM
 remote=$2
 remotedir=$3
-snapsdir=$mountPoint/.snaps$workdir/snaps
-rosnapsdir=$mountPoint/.snaps$workdir/ro
+rosnapsdir=$workdir/ro
 
-mkdir -p $mountPoint
-mount -t btrfs -o subvolid=0 $dev $mountPoint
+mkdir -p $rosnapsdir
 
-if [ "$?" == "0" ]; then
+for p in $(ls $workdir/snaps); do
+	btrfs sub snapshot -r $workdir/snaps/$p $rosnapsdir/$p
+done
+sync
 
-	mkdir -p $rosnapsdir
+firstSnapshot=$(ls $rosnapsdir | head -1)
 
-	for p in $(ls $snapsdir | head -n -1); do
-		btrfs sub snapshot -r $snapsdir/$p $rosnapsdir/$p
-	done
-	sync
-
-	firstSnapshot=$(ls $rosnapsdir | head -1)
-
-	ssh $remote mkdir -p $remotedir
-	ssh $remote test -e $remotedir/$firstSnapshot
-	if [ "$?" != 0 ]; then # First snapshot not found
-		btrfs send $rosnapsdir/$firstSnapshot |ssh $remote sudo btrfs receive $remotedir
-	fi
-
-	previous=$firstSnapshot
-	for p in $(ls $rosnapsdir | tail -n +2); do
-		btrfs send -p $rosnapsdir/$previous $rosnapsdir/$p |ssh $remote sudo btrfs receive $remotedir
-	done
-
-	for p in $(ls $snapsdir | head -n -1); do
-		btrfs sub del $rosnapsdir/$p
-	done
-	sync
-
-	rmdir $rosnapsdir
-
-	# Umount tmp fs
-	umount $mountPoint
-else
-	echo "Unable to mount $dev on $mountPoint"
+ssh $remote mkdir -p $remotedir
+ssh $remote test -e $remotedir/$firstSnapshot
+if [ "$?" != 0 ]; then # First snapshot not found
+	btrfs send $rosnapsdir/$firstSnapshot |ssh $remote sudo btrfs receive $remotedir
 fi
 
-rmdir $mountPoint
+previous=$firstSnapshot
+for p in $(ls $rosnapsdir | tail -n +2); do
+	btrfs send -p $rosnapsdir/$previous $rosnapsdir/$p |ssh $remote sudo btrfs receive $remotedir
+done
+
+for p in $(ls $rosnapsdir); do
+	btrfs sub del $rosnapsdir/$p
+done
+sync
+
+rmdir $rosnapsdir

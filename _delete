@@ -6,23 +6,9 @@
 }
 
 workdir=$(readlink -m $1)
-mountPoint=/tmp/$RANDOM
-scriptlocation=$(dirname "${BASH_SOURCE[0]}")
-dev=$($scriptlocation/_whichdev $workdir)
 
-mkdir $mountPoint
-mount -t btrfs -o subvolid=0 $dev $mountPoint
-
-if [ "$?" == "0" ]; then
-
-	umount $workdir
-
-	for p in $(ls $mountPoint/.snaps$workdir/snaps); do
-		btrfs subvolume delete $mountPoint/.snaps/$workdir/snaps/$p
-	done
-	umount $mountPoint
-else 
-	echo "Unable to mount $dev on $mountPoint"
-fi
-
-rmdir $mountPoint
+for p in $(ls $workdir/snaps); do
+	btrfs subvolume delete $workdir/snaps/$p
+done
+btrfs subvolume delete $workdir/workdir
+rm -rf $workdir

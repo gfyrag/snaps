@@ -11,47 +11,20 @@
 
 workdir=$(readlink -m $1)
 scriptlocation=$(dirname "${BASH_SOURCE[0]}")
-dev=$($scriptlocation/_whichdev $workdir)
-mountPoint=/tmp/$RANDOM
 snapid=$2
 
-mkdir -p $mountPoint
-mount -t btrfs -o subvolid=0 $dev $mountPoint
-
-if [ "$?" == "0" ]; then
-
-	if [ -d $mountPoint/.snaps$workdir/snaps/$snapid ]; then
+if [ -d $workdir/snaps/$snapid ]; then
 		
-		# Snap current
-		$scriptlocation/_snap $workdir
+	# Snap current
+	$scriptlocation/_snap $workdir
 
-		# Umount before switching
-		umount $workdir
-		if [ "$?" == "0" ]; then
+	btrfs sub del $workdir/workdir
 
-			# Replace
-			btrfs sub del $mountPoint/.snaps$workdir/snaps/main
-
-			if [ "$?" == "0" ]; then
-				mv $mountPoint/.snaps$workdir/snaps/$snapid $mountPoint/.snaps$workdir/snaps/main
-
-				# Mount
-				mount -t btrfs -o subvol=.snaps/$workdir/snaps/main $dev $workdir
-			else 
-				echo "Unable to remove main volume"
-			fi
-		else 
-			echo "Unable to umount workdir : $workdir"
-		fi
-
-	else
-		echo "Snap $snapid not found!"
+	if [ "$?" == "0" ]; then
+		btrfs sub snapshot $workdir/snaps/$snapid $workdir/workdir
+	else 
+		echo "Unable to remove main volume"
 	fi
-
-	# Umount tmp fs
-	umount $mountPoint
-else 
-	echo "Unable to mount $dev on $mountPoint"
+else
+	echo "Snap $snapid not found!"
 fi
-
-rmdir $mountPoint

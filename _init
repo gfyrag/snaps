@@ -6,28 +6,9 @@
 }
 
 workdir=$(readlink -m $1)
-scriptlocation=$(dirname "${BASH_SOURCE[0]}")
-dev=$($scriptlocation/_whichdev $workdir)
-mountPoint=/tmp/$RANDOM
 
-mkdir -p $mountPoint
-mount -t btrfs -o subvolid=0 $dev $mountPoint
+# Create dirs
+mkdir -p $workdir/snaps
 
-if [ "$?" == "0" ]; then
-
-	# Create dirs
-	mkdir -p $workdir
-	mkdir -p $mountPoint/.snaps$workdir/snaps
-
-	# Init using common fs
-	btrfs subvolume create $mountPoint/.snaps$workdir/snaps/main
-
-	# Mount
-	mount -t btrfs -o subvol=.snaps$workdir/snaps/main $dev $workdir
-
-	# Umount tmp fs	
-	umount $mountPoint
-else 
-	echo "Unable to mount $dev on $mountPoint"
-fi
-rmdir $mountPoint
+# Init using common fs
+btrfs subvolume create $workdir/workdir
