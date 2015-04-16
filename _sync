@@ -39,6 +39,7 @@ fi
 previous=$firstSnapshot
 for p in $(ls $rosnapsdir | tail -n +2); do
 	btrfs send -p $rosnapsdir/$previous $rosnapsdir/$p |ssh $remote sudo btrfs receive $remotedir
+	previous=$p
 done
 
 for p in $(ls $rosnapsdir); do
