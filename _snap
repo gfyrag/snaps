@@ -2,13 +2,35 @@
 
 set -x
 
-[ $1 ] || {
+while [ "$#" -gt "0" ]; do
+	arg=$1
+	shift
+	case $arg in
+		"-m")
+			message=$1
+			shift
+			;;
+		*)
+			if [ "$workdir" == "" ]; then
+				workdir=$arg
+			else
+				echo "Too many arguments"
+				exit 1
+			fi
+	esac
+done
+
+[ $workdir ] || {
 	echo "Missing workdir"
 	exit 1
 }
 
-workdir=$(readlink -m $1)
+workdir=$(readlink -m $workdir)
 snapshot=$(date +%s)
 
 btrfs sub snapshot $workdir/workdir $workdir/snaps/$snapshot
 sync
+
+if [ "$message" != "" ]; then
+	echo "$message" > $workdir/snaps/$snapshot/.snapmessage
+fi

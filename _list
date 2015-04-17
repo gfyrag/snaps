@@ -8,5 +8,12 @@
 workdir=$(readlink -m $1)
 
 for p in $(ls $workdir/snaps); do
-	echo $p : $(date --date="@$p")
+	echo ID : $p
+	echo Date : $(date --date="@$p")
+	if [ -f $workdir/snaps/$p/.snapmessage ]; then
+		echo Message : $(cat $workdir/snaps/$p/.snapmessage)
+	else
+		echo Message : No message
+	fi
+	echo ""
 done
