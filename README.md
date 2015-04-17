@@ -1,29 +1,61 @@
 # Snap
 
-## Backuping
+Snap is a set of bash scripts managing btrfs volumes.
+
+## How it works?
+
+Snaps create a simple directory structure as follow : 
+
+<pre>
++ snapDirectory
+---- snaps
+---- workdir
+</pre>
+
+workdir is the main volume when you do your stuff.
+snaps contains your snapshots.
+
+## Initialize
 
 ```
-# Initialize .snap
-snap init <volume>
-# Need new entry in /etc/fstab
+snap init <directory>
+```
 
-# Make a snapshot
-snap <volume>
+This command will generate tree and create the subvolume "workdir"
 
-# Sync remote
-snap sync <volume> <remote> <remotedir>
+## Make a snapshot
 
-# List snapshots
-snap list <volume>
+```
+snap snap -m <message> <directory>
+```
 
-# Restore
-snap restore <volume> <id>
+This command make a snapshot of the current workdir.
+The '-m' flag allow to specify a message which will be write in snaps/&lt;snapId&gt;/.snapmessage
 
-# Delete
+## Synchronize with remote
+
+```
+snap sync <directory> <sshRemote> <sshRemoteDir>
+```
+
+This command will synchronize with a remote host
+
+## List snapshots
+
+```
+snap list <directory>
+```
+
+## Restore
+
+```
+snap restore <directory> <id>
+```
+
+## Delete
+
+```
 snap delete <volume>
-
 ```
 
-## Init
-
-Initialize create a dir .snaps on the btrfs volume is sub volume 0.
+Be carefull, currently this command will remove all data.
