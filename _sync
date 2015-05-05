@@ -8,17 +8,12 @@ set -x
 }
 
 [ $2 ] || {
-	echo "Missing remote"
-}
-
-[ $3 ] || {
-	echo "Missing remote dir"
+	echo "Missing dest dir"
 }
 
 workdir=$(readlink -m $1)
 scriptlocation=$(dirname "${BASH_SOURCE[0]}")
-remote=$2
-remotedir=$3
+dest=$2
 rosnapsdir=$workdir/ro
 
 mkdir -p $rosnapsdir
@@ -30,15 +25,15 @@ sync
 
 firstSnapshot=$(ls $rosnapsdir | head -1)
 
-ssh $remote mkdir -p $remotedir
-ssh $remote test -e $remotedir/$firstSnapshot
+mkdir -p $dest
+test -e $dest/$firstSnapshot
 if [ "$?" != 0 ]; then # First snapshot not found
-	btrfs send $rosnapsdir/$firstSnapshot |ssh $remote sudo btrfs receive $remotedir
+	btrfs send $rosnapsdir/$firstSnapshot |sudo btrfs receive $dest
 fi
 
 previous=$firstSnapshot
 for p in $(ls $rosnapsdir | tail -n +2); do
-	btrfs send -p $rosnapsdir/$previous $rosnapsdir/$p |ssh $remote sudo btrfs receive $remotedir
+	btrfs send -p $rosnapsdir/$previous $rosnapsdir/$p |sudo btrfs receive $dest
 	previous=$p
 done
 
