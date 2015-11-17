@@ -22,6 +22,8 @@ if [ -d $workdir/snaps/$snapid ]; then
 
 	if [ "$?" == "0" ]; then
 		btrfs sub snapshot $workdir/snaps/$snapid $workdir/workdir
+
+		$workdir/workdir/.snapmessage
 	else 
 		echo "Unable to remove main volume"
 	fi

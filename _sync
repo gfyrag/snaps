@@ -1,45 +1,54 @@
 #!/bin/bash
 
-set -x
-
 [ $1 ] || {
 	echo "Missing workdir"
 	exit 1
 }
 
 [ $2 ] || {
-	echo "Missing dest dir"
+	echo "Missing remote host"
+	exit 2
 }
 
-workdir=$(readlink -m $1)
-scriptlocation=$(dirname "${BASH_SOURCE[0]}")
-dest=$2
-rosnapsdir=$workdir/ro
+[ $3 ] || {
+	echo "Missing remote dir"
+	exit 3
+}
 
-mkdir -p $rosnapsdir
+host=$2
+dest=$3
+snapsdir=$(readlink -m $1)/snaps
 
-for p in $(ls $workdir/snaps); do
-	btrfs sub snapshot -r $workdir/snaps/$p $rosnapsdir/$p
+echo "Creating dest directory if not exists..."
+ssh $host mkdir -p $dest
+
+echo "Listing remote shapshots..."
+remoteSnapshots=$(ssh $host ls $dest)
+
+echo "Listing local snapshots..."
+localSnapshots=$(ls $snapsdir)
+
+echo "Cleaning remote snapshots..."
+for remoteSnapshot in $remoteSnapshots; do
+	if [ ! -e $snapsdir/$remoteSnapshot ]; then
+		ssh $host sudo btrfs subvolume delete $dest/$remoteSnapshot
+	fi
 done
-sync
 
-firstSnapshot=$(ls $rosnapsdir | head -1)
-
-mkdir -p $dest
-test -e $dest/$firstSnapshot
-if [ "$?" != 0 ]; then # First snapshot not found
-	btrfs send $rosnapsdir/$firstSnapshot |sudo btrfs receive $dest
+# Check have at least the first snapshot
+echo "Bootstraping first snapshot..."
+firstSnapshot=$(ls $snapsdir | head -1)
+ssh $host test -e $dest/$firstSnapshot
+if [ ! $? ]; then
+	sudo btrfs send $snapsdir/$firstSnapshot | ssh $host sudo btrfs receive $dest
 fi
 
+echo "Processing incremental backup..."
 previous=$firstSnapshot
-for p in $(ls $rosnapsdir | tail -n +2); do
-	btrfs send -p $rosnapsdir/$previous $rosnapsdir/$p |sudo btrfs receive $dest
+for p in $(ls $snapsdir | tail -n +2); do
+	ssh $host test -e $dest/$p || \
+		sudo btrfs send -p $snapsdir/$previous $snapsdir/$p | ssh $host sudo btrfs receive $dest
 	previous=$p
 done
 
-for p in $(ls $rosnapsdir); do
-	btrfs sub del $rosnapsdir/$p
-done
-sync
 
-rmdir $rosnapsdir

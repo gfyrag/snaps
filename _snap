@@ -28,9 +28,11 @@ done
 workdir=$(readlink -m $workdir)
 snapshot=$(date +%s)
 
-btrfs sub snapshot $workdir/workdir $workdir/snaps/$snapshot
+if [ "$message" != "" ]; then
+        echo "$message" > $workdir/workdir/.snapmessage
+fi
+
+btrfs sub snapshot -r $workdir/workdir $workdir/snaps/$snapshot
 sync
 
-if [ "$message" != "" ]; then
-	echo "$message" > $workdir/snaps/$snapshot/.snapmessage
-fi
+rm $workdir/workdir/.snapmessage
