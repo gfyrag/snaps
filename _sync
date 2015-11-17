@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 [ $1 ] || {
 	echo "Missing workdir"
 	exit 1
@@ -46,7 +48,7 @@ fi
 echo "Processing incremental backup..."
 previous=$firstSnapshot
 for p in $(ls $snapsdir | tail -n +2); do
-	ssh $host test -e $dest/$p || \
+	ssh $host test -e $dest/$p ||\
 		sudo btrfs send -p $snapsdir/$previous $snapsdir/$p | ssh $host sudo btrfs receive $dest
 	previous=$p
 done
